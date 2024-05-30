@@ -6,4 +6,7 @@ edition = "2021"
 
 [dependencies]
 sp1-zkvm = { git = "https://github.com/succinctlabs/sp1.git", rev = "v1.0.0-testnet" }
-plonky2 = "0.2.2"
+plonky2 = { git = "https://github.com/0xPolygonZero/plonky2", branch = "tiny-keccak" }
+
+[patch.crates-io]
+tiny-keccak = { git = "https://github.com/sp1-patches/tiny-keccak", branch = "patch-v2.0.2" }

@@ -1,6 +1,6 @@
 //! A simple script to generate and verify the proof of a given program.
 
-use sp1_sdk::{ProverClient, SP1Stdin};
+use sp1_sdk::{ProverClient, SP1Stdin, utils};
 
 const ELF: &[u8] = include_bytes!("../../program/elf/riscv32im-succinct-zkvm-elf");
 
@@ -8,13 +8,13 @@ use plonky2::field::types::Field;
 use plonky2::iop::witness::{PartialWitness, WitnessWrite};
 use plonky2::plonk::circuit_builder::CircuitBuilder;
 use plonky2::plonk::circuit_data::CircuitConfig;
-use plonky2::plonk::config::{GenericConfig, PoseidonGoldilocksConfig};
+use plonky2::plonk::config::{GenericConfig, PoseidonGoldilocksConfig, KeccakGoldilocksConfig};
 use plonky2::plonk::circuit_data::CircuitData;
 use plonky2::plonk::proof::ProofWithPublicInputs;
 use plonky2::util::serialization::DefaultGateSerializer;
 
 const D: usize = 2;
-type C = PoseidonGoldilocksConfig;
+type C = KeccakGoldilocksConfig;
 type F = <C as GenericConfig<D>>::F;
 
 fn fibonacci_proof(num_query_rounds: usize, num_challenges: usize) -> (CircuitData<F,C,D>, ProofWithPublicInputs<F,C,D>) {
@@ -29,7 +29,7 @@ fn fibonacci_proof(num_query_rounds: usize, num_challenges: usize) -> (CircuitDa
     let initial_b = builder.add_virtual_target();
     let mut prev_target = initial_a;
     let mut cur_target = initial_b;
-    for _ in 0..2 {
+    for _ in 0..99 {
         let temp = builder.add(prev_target, cur_target);
         prev_target = cur_target;
         cur_target = temp;
@@ -53,7 +53,9 @@ fn fibonacci_proof(num_query_rounds: usize, num_challenges: usize) -> (CircuitDa
 
 fn sp1_prove(circuit: CircuitData<F,C,D>, proof: ProofWithPublicInputs<F, C, D>) {
     let mut stdin = SP1Stdin::new();
-    stdin.write(&proof);
+    let proof_bytes = proof.to_bytes();
+    stdin.write(&proof_bytes);
+    // stdin.write(&proof);
     let gate_serializer = DefaultGateSerializer;
     let circuit_bytes = circuit.verifier_data().to_bytes(&gate_serializer).unwrap();
     stdin.write(&circuit_bytes);
@@ -75,9 +77,11 @@ fn sp1_prove(circuit: CircuitData<F,C,D>, proof: ProofWithPublicInputs<F, C, D>)
 
 fn sp1_prove_groth16(circuit: CircuitData<F,C,D>, proof: ProofWithPublicInputs<F, C, D>) {
     let mut stdin = SP1Stdin::new();
-    stdin.write(&proof);
+    let proof_bytes = proof.to_bytes();
+    stdin.write(&proof_bytes);
     let gate_serializer = DefaultGateSerializer;
     let circuit_bytes = circuit.verifier_data().to_bytes(&gate_serializer).unwrap();
+    dbg!(circuit_bytes.len());
     stdin.write(&circuit_bytes);
     let client = ProverClient::new();
     let (pk, vk) = client.setup(ELF);
@@ -99,10 +103,13 @@ fn sp1_prove_groth16(circuit: CircuitData<F,C,D>, proof: ProofWithPublicInputs<F
 
 
 fn main() {
+    utils::setup_logger();
     let args: Vec<String> = std::env::args().collect();
     assert_eq!(args.len(), 3, "Pass two arguments: num_query_rounds: usize, num_challenges: usize");
     let num_query_rounds: usize = args[1].parse().unwrap();
     let num_challenges: usize = args[2].parse().unwrap();
     let (circuit, proof) = fibonacci_proof(num_query_rounds, num_challenges);
-    sp1_prove_groth16(circuit, proof)
+    assert!(circuit.verify(proof.clone()).is_ok());
+    // sp1_prove_groth16(circuit, proof)
+    sp1_prove(circuit, proof)
 }

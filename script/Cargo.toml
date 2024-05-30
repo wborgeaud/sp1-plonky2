@@ -6,7 +6,7 @@ edition = "2021"
 
 [dependencies]
 sp1-sdk = { git = "https://github.com/succinctlabs/sp1.git", rev = "v1.0.0-testnet" }
-plonky2 = "0.2.2"
+plonky2 = { git = "https://github.com/0xPolygonZero/plonky2", branch = "tiny-keccak" }
 
 [build-dependencies]
 sp1-helper = { git = "https://github.com/succinctlabs/sp1.git", rev = "v1.0.0-testnet"  }

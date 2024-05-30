@@ -110,6 +110,6 @@ fn main() {
     let num_challenges: usize = args[2].parse().unwrap();
     let (circuit, proof) = fibonacci_proof(num_query_rounds, num_challenges);
     assert!(circuit.verify(proof.clone()).is_ok());
-    // sp1_prove_groth16(circuit, proof)
-    sp1_prove(circuit, proof)
+    sp1_prove_groth16(circuit, proof)
+    // sp1_prove(circuit, proof)
 }
